@@ -23,6 +23,10 @@ DEFAULT_CONFIG = {
     "mode": "ocr",
     "tesseract_path": r"C:\Program Files\Tesseract-OCR\tesseract.exe",
     "emergency_key": "esc",
+    "movement_w_duration": 3.0,
+    "movement_s_duration": 3.0,
+    "movement_click_interval": 0.5,
+    "movement_click_enabled": True,
     "history": []
 }
 
@@ -102,6 +106,22 @@ class ConfigManager:
     def get_tesseract_path(self):
         """Retorna o caminho do executável do Tesseract."""
         return self.config.get("tesseract_path", r"C:\Program Files\Tesseract-OCR\tesseract.exe")
+
+    def get_movement_w_duration(self):
+        """Retorna a duração em segundos pressionando W."""
+        return self.config.get("movement_w_duration", 3.0)
+
+    def get_movement_s_duration(self):
+        """Retorna a duração em segundos pressionando S."""
+        return self.config.get("movement_s_duration", 3.0)
+
+    def get_movement_click_interval(self):
+        """Retorna o intervalo em segundos entre os cliques de mouse."""
+        return self.config.get("movement_click_interval", 0.5)
+
+    def is_movement_click_enabled(self):
+        """Retorna se os cliques (socos) estão ativados."""
+        return self.config.get("movement_click_enabled", True)
 
     def add_history_entry(self, magic_find_value):
         """Adiciona uma entrada ao histórico de resultados."""

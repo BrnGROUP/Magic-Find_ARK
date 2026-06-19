@@ -16,6 +16,7 @@ from ui.styles import get_stylesheet
 from ui.dashboard import DashboardPage
 from ui.settings import SettingsPage
 from ui.automation import AutomationPage
+from ui.movement import MovementPage
 from ui.history import HistoryPage
 from core.config_manager import ConfigManager
 
@@ -84,6 +85,7 @@ class MainWindow(QMainWindow):
         nav_items = [
             ("📊", "Dashboard"),
             ("🤖", "Automação"),
+            ("🚶‍♂️", "Movimentação"),
             ("⚙️", "Configurações"),
             ("📋", "Histórico"),
         ]
@@ -132,6 +134,7 @@ class MainWindow(QMainWindow):
         # Criar páginas
         self.dashboard_page = DashboardPage()
         self.automation_page = AutomationPage(self.config, self.dashboard_page)
+        self.movement_page = MovementPage(self.config)
         self.settings_page = SettingsPage(self.config)
         self.history_page = HistoryPage(self.config)
 
@@ -139,10 +142,11 @@ class MainWindow(QMainWindow):
         self.settings_page.settings_saved.connect(self._on_settings_saved)
 
         # Adicionar páginas ao stack
-        self.stack.addWidget(self.dashboard_page)    # 0
+        self.stack.addWidget(self.dashboard_page)     # 0
         self.stack.addWidget(self.automation_page)    # 1
-        self.stack.addWidget(self.settings_page)      # 2
-        self.stack.addWidget(self.history_page)       # 3
+        self.stack.addWidget(self.movement_page)      # 2
+        self.stack.addWidget(self.settings_page)      # 3
+        self.stack.addWidget(self.history_page)       # 4
 
         main_layout.addWidget(self.stack, stretch=1)
 
@@ -154,8 +158,9 @@ class MainWindow(QMainWindow):
         page_map = {
             "Dashboard": 0,
             "Automação": 1,
-            "Configurações": 2,
-            "Histórico": 3,
+            "Movimentação": 2,
+            "Configurações": 3,
+            "Histórico": 4,
         }
 
         index = page_map.get(page_name, 0)
@@ -182,8 +187,15 @@ class MainWindow(QMainWindow):
         if (self.automation_page.worker 
                 and self.automation_page.worker.is_running()):
             self.automation_page.stop_automation()
-            # Aguardar thread finalizar
             if self.automation_page.thread:
                 self.automation_page.thread.quit()
-                self.automation_page.thread.wait(3000)
+                self.automation_page.thread.wait(2000)
+
+        if (self.movement_page.worker 
+                and self.movement_page.worker.is_running()):
+            self.movement_page.stop_movement()
+            if self.movement_page.thread:
+                self.movement_page.thread.quit()
+                self.movement_page.thread.wait(2000)
+
         event.accept()
