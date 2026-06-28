@@ -5,7 +5,7 @@ Controles de início/fim, configuração de tempo de W/S, clicks e log em tempo 
 
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QFrame,
-    QPushButton, QTextEdit, QDoubleSpinBox, QComboBox, QGroupBox
+    QPushButton, QTextEdit, QDoubleSpinBox, QSpinBox, QComboBox, QGroupBox
 )
 from PyQt5.QtCore import Qt, QThread, QTimer
 from PyQt5.QtGui import QFont, QTextCursor
@@ -22,6 +22,12 @@ class MovementPage(QWidget):
         self.worker = None
         self.thread = None
         self.setup_ui()
+        
+        # Inicializa o AutoClicker global
+        from core.auto_clicker import AutoClicker
+        self.autoclicker = AutoClicker(self.config)
+        self.autoclicker.log_message.connect(self.append_log)
+        
         self.load_settings()
 
     def setup_ui(self):
@@ -106,6 +112,49 @@ class MovementPage(QWidget):
 
         main_layout.addWidget(config_group)
 
+        # === AUTO-CLICKER CARD ===
+        autoclick_group = QGroupBox("🔥 Auto-Clique Rápido (Burst Clicker)")
+        autoclick_layout = QGridLayout(autoclick_group)
+        autoclick_layout.setSpacing(16)
+        autoclick_layout.setColumnStretch(1, 1)
+        autoclick_layout.setColumnStretch(3, 1)
+
+        # Cliques de Ativação
+        autoclick_layout.addWidget(QLabel("Cliques de Ativação:"), 0, 0)
+        self.autoclick_trigger_spin = QSpinBox()
+        self.autoclick_trigger_spin.setRange(2, 50)
+        self.autoclick_trigger_spin.setSuffix(" cliques")
+        self.autoclick_trigger_spin.valueChanged.connect(self.save_settings)
+        autoclick_layout.addWidget(self.autoclick_trigger_spin, 0, 1)
+
+        # Janela de Tempo
+        autoclick_layout.addWidget(QLabel("Janela de Tempo:"), 0, 2)
+        self.autoclick_window_spin = QDoubleSpinBox()
+        self.autoclick_window_spin.setRange(0.2, 10.0)
+        self.autoclick_window_spin.setDecimals(1)
+        self.autoclick_window_spin.setSuffix(" s")
+        self.autoclick_window_spin.setSingleStep(0.2)
+        self.autoclick_window_spin.valueChanged.connect(self.save_settings)
+        autoclick_layout.addWidget(self.autoclick_window_spin, 0, 3)
+
+        # Cliques Simulados
+        autoclick_layout.addWidget(QLabel("Cliques Simulados:"), 1, 0)
+        self.autoclick_burst_spin = QSpinBox()
+        self.autoclick_burst_spin.setRange(10, 5000)
+        self.autoclick_burst_spin.setSingleStep(50)
+        self.autoclick_burst_spin.setSuffix(" cliques")
+        self.autoclick_burst_spin.valueChanged.connect(self.save_settings)
+        autoclick_layout.addWidget(self.autoclick_burst_spin, 1, 1)
+
+        # Botão de Ativação
+        self.btn_toggle_autoclick = QPushButton("▶  ATIVAR AUTO-CLIQUE")
+        self.btn_toggle_autoclick.setObjectName("btn_secondary")
+        self.btn_toggle_autoclick.setCursor(Qt.PointingHandCursor)
+        self.btn_toggle_autoclick.clicked.connect(self.toggle_autoclick)
+        autoclick_layout.addWidget(self.btn_toggle_autoclick, 1, 2, 1, 2)
+
+        main_layout.addWidget(autoclick_group)
+
         # === CONTROL BUTTONS ===
         controls_frame = QFrame()
         controls_frame.setObjectName("card")
@@ -181,6 +230,11 @@ class MovementPage(QWidget):
         self.click_enabled_combo.setCurrentIndex(0 if click_enabled else 1)
         self.click_interval_spin.setValue(self.config.get_movement_click_interval())
         
+        # Auto-Clicker Settings
+        self.autoclick_trigger_spin.setValue(self.config.get_autoclick_trigger_clicks())
+        self.autoclick_burst_spin.setValue(self.config.get_autoclick_burst_clicks())
+        self.autoclick_window_spin.setValue(self.config.get_autoclick_time_window())
+        
         self._on_click_toggle()
 
     def save_settings(self):
@@ -189,6 +243,11 @@ class MovementPage(QWidget):
         self.config.set("movement_s_duration", self.s_duration_spin.value())
         self.config.set("movement_click_enabled", self.click_enabled_combo.currentIndex() == 0)
         self.config.set("movement_click_interval", self.click_interval_spin.value())
+        
+        # Auto-Clicker Settings
+        self.config.set("autoclick_trigger_clicks", self.autoclick_trigger_spin.value())
+        self.config.set("autoclick_burst_clicks", self.autoclick_burst_spin.value())
+        self.config.set("autoclick_time_window", self.autoclick_window_spin.value())
 
     def _on_click_toggle(self):
         """Desabilita ou habilita o controle do delay do clique de acordo com a seleção."""
@@ -298,3 +357,34 @@ class MovementPage(QWidget):
     def clear_log(self):
         """Limpa as mensagens de log da tela."""
         self.log_display.clear()
+
+    def toggle_autoclick(self):
+        """Ativa ou desativa o monitoramento de cliques rápidos."""
+        if self.autoclicker.is_active():
+            self.autoclicker.stop()
+            self.btn_toggle_autoclick.setText("▶  ATIVAR AUTO-CLIQUE")
+            self.btn_toggle_autoclick.setObjectName("btn_secondary")
+            
+            # Forçar atualização visual do botão
+            self.btn_toggle_autoclick.style().unpolish(self.btn_toggle_autoclick)
+            self.btn_toggle_autoclick.style().polish(self.btn_toggle_autoclick)
+            
+            # Reabilitar inputs
+            self.autoclick_trigger_spin.setEnabled(True)
+            self.autoclick_burst_spin.setEnabled(True)
+            self.autoclick_window_spin.setEnabled(True)
+        else:
+            self.save_settings()
+            success = self.autoclicker.start()
+            if success:
+                self.btn_toggle_autoclick.setText("⏹  DESATIVAR AUTO-CLIQUE")
+                self.btn_toggle_autoclick.setObjectName("btn_danger")
+                
+                # Forçar atualização visual do botão
+                self.btn_toggle_autoclick.style().unpolish(self.btn_toggle_autoclick)
+                self.btn_toggle_autoclick.style().polish(self.btn_toggle_autoclick)
+                
+                # Desabilitar inputs enquanto ativo
+                self.autoclick_trigger_spin.setEnabled(False)
+                self.autoclick_burst_spin.setEnabled(False)
+                self.autoclick_window_spin.setEnabled(False)

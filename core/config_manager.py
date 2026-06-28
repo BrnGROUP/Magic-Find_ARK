@@ -27,6 +27,10 @@ DEFAULT_CONFIG = {
     "movement_s_duration": 3.0,
     "movement_click_interval": 0.5,
     "movement_click_enabled": True,
+    "autoclick_enabled": False,
+    "autoclick_trigger_clicks": 5,
+    "autoclick_burst_clicks": 500,
+    "autoclick_time_window": 2.0,
     "history": []
 }
 
@@ -122,6 +126,22 @@ class ConfigManager:
     def is_movement_click_enabled(self):
         """Retorna se os cliques (socos) estão ativados."""
         return self.config.get("movement_click_enabled", True)
+
+    def is_autoclick_enabled(self):
+        """Retorna se o auto-clique rápido está ativado."""
+        return self.config.get("autoclick_enabled", False)
+
+    def get_autoclick_trigger_clicks(self):
+        """Retorna o número de cliques necessários para ativar o burst."""
+        return self.config.get("autoclick_trigger_clicks", 5)
+
+    def get_autoclick_burst_clicks(self):
+        """Retorna o número de cliques automáticos disparados."""
+        return self.config.get("autoclick_burst_clicks", 500)
+
+    def get_autoclick_time_window(self):
+        """Retorna a janela de tempo máxima para os cliques de ativação."""
+        return self.config.get("autoclick_time_window", 2.0)
 
     def add_history_entry(self, magic_find_value):
         """Adiciona uma entrada ao histórico de resultados."""

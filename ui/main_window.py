@@ -198,4 +198,9 @@ class MainWindow(QMainWindow):
                 self.movement_page.thread.quit()
                 self.movement_page.thread.wait(2000)
 
+        # Parar auto-clicker se ativo
+        if (hasattr(self.movement_page, 'autoclicker') 
+                and self.movement_page.autoclicker.is_active()):
+            self.movement_page.autoclicker.stop()
+
         event.accept()
